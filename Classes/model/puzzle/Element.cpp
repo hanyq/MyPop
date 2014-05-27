@@ -8,6 +8,8 @@ Element::Element()
 , _y(0)
 , _countX(0)
 , _countY(0)
+,_eraseX(false)
+,_eraseY(false)
 {
 }
 

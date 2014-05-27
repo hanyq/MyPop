@@ -3,6 +3,7 @@
 
 #include "cocos2d.h"
 #include "../../util/sigslot.h"
+#include "../../model/CountDown.h"
 
 USING_NS_CC;
 using namespace sigslot;
@@ -23,12 +24,35 @@ public:
 
 	virtual void onExit();
 
+	//游戏开始
 	void onStart();
 
 	void cancelTouch();
 
-private:
+	//得到位置（想， y）对应的元素精灵Tag
+	int getElementSpriteTag(int x, int y);
 
+	//开始消除
+	void onBeginErase();
+
+	//消除
+	void onErase(int x, int y, bool eraseX, bool eraseY);
+
+	//消除结束
+	void onAfterErase();
+
+	//开始下落
+	void onBeginDrop();
+
+	//下落
+	void onDrop(int fromX, int fromY, int toX, int toY);
+
+	//下落结束
+	void onAfterDrop();
+
+private:
+	CountDown *_eraseCountDown;//消除
+	CountDown *_dropCountDown;//下落
 };
 
 #endif

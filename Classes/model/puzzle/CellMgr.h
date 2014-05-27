@@ -35,11 +35,25 @@ public:
 	//重新开始
 	void start();
 
-	int randTag();
+	//标记相同tag的元素，返回是否有可以消除的元素
+	bool mark();
+
+	//消除元素
+	void erase();
+
+	//下落元素，填补空缺
+	void drop();
 
 private:
+	int randTag();
 
 	void set(int x, int y, Cell* cell);
+
+	//标记X轴方向上可消除的元素
+	void markEraseX(int x, int y, int countX);
+	
+	//标记Y轴方向上可消除的元素
+	void markEraseY(int x, int y, int countY);
 
 	Cell **_cells;//格子
 	Element **_elements;//元素

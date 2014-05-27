@@ -1,6 +1,7 @@
 #include "CellMgr.h"
 #include <time.h>
 #include "../../controller/Controllers.h"
+#include "../CountDown.h"
 
 CellMgr::CellMgr()
 :_cells(nullptr)
@@ -95,11 +96,6 @@ int CellMgr::randTag()
 
 void CellMgr::start()
 {
-	for (int i = 0; i < _sizeX * _sizeY; i++)
-	{
-		_elements[i] = nullptr;//设置每个格子的元素为NULL
-	}
-
 	for (int x = 0; x < _sizeX; x++)
 	{
 		for (int y = 0; y < _sizeY; y++)
@@ -116,4 +112,163 @@ void CellMgr::start()
 
 	//抛出游戏开始事件
 	Controllers::getGameController()->start();
+}
+
+
+bool CellMgr::mark()
+{
+	bool canErase = false;
+	for (int x = 0; x < _sizeX; x++)
+	{
+		Element *preY = nullptr;
+		for (int y = 0; y < _sizeY; y++)
+		{
+			Element *element = getElement(x, y);
+			if(element)
+			{
+				element->setCountX(1);
+				element->setCountY(1);
+
+				if(x > 0)
+				{
+					//标记X轴方向相同Tag元素个数
+					Element *preX = getElement(x - 1, y);
+					if(preX && preX->getTag() == element->getTag())
+					{
+						element->setCountX(preX->getCountX() + 1);
+
+						if(element->getCountX() >= 3)
+						{
+							markEraseX(x, y, element->getCountX());
+
+							canErase = true;
+						}
+					}
+				}
+
+				//标记Y轴方向相同Tag元素个数
+				if(preY && preY->getTag() == element->getTag()){
+					element->setCountY(preY->getCountY() + 1);
+
+					if(element->getCountY() >= 3)
+					{
+						markEraseY(x, y, element->getCountY());
+
+						canErase = true;
+					}
+				}
+			}
+
+			preY = element;
+		}
+	}
+
+	return canErase;
+}
+
+void CellMgr::markEraseX(int x, int y, int countX)
+{
+	for(int i = 0; i < countX; i++)
+	{
+		Element *element = getElement(x - i, y);
+		if(!element->getEraseX()){
+			element->setEraseX(true);
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+void CellMgr::markEraseY(int x, int y, int countY)
+{
+	for(int i = 0; i < countY; i++)
+	{
+		Element *element = getElement(x, y - i);
+		if(!element->getEraseY()){
+			element->setEraseY(true);
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+void CellMgr::erase()
+{
+	//开始消除
+	Controllers::getGameController()->beginErase();
+
+	for (int x = 0; x < _sizeX; x++)
+	{
+		for (int y = 0; y < _sizeY; y++)
+		{
+			Element *element = getElement(x, y);
+			if(element)
+			{
+				if(element->getEraseX() || element->getEraseY()){
+					//消除当前位置的元素
+					Controllers::getGameController()->erase(x, y, element->getEraseX(), element->getEraseY());
+
+					setElement(x, y, nullptr);
+				}
+			}
+		}
+	}
+}
+
+void CellMgr::drop()
+{
+	//开始下落
+	Controllers::getGameController()->beginDrop();
+	for (int x = 0; x < _sizeX; x++)
+	{
+		int upY = 0;
+		for (int y = 0; y < _sizeY; y++)
+		{
+			Element *element = getElement(x, y);
+			if(!element)
+			{
+				Element *upElement = nullptr;
+				if(upY <= y){
+					upY = y + 1;
+				}
+				for(; upY < _sizeY; upY++)
+				{
+					upElement = getElement(x, y);
+					if(upElement)
+					{
+						break;
+					}
+				}
+				if(upElement){
+					//往下移动元素
+					int upX = upElement->getX();
+					int upY = upElement->getY();
+					upElement->setX(x);
+					upElement->setY(y);
+
+					setElement(x, y, upElement);
+					setElement(upX, upY, nullptr);
+
+					Controllers::getGameController()->drop(upX, upY, x, y);
+				}
+				else
+				{
+					//新增元素
+					Element *newElement = Element::create();
+					newElement->setX(x);
+					newElement->setY(y);
+
+					newElement->setTag(randTag());
+
+					setElement(x, y, newElement);
+
+					Controllers::getGameController()->drop(x, _sizeY, x, y);
+				}
+			}
+		}
+	}
 }

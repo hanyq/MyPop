@@ -23,6 +23,10 @@ public:
 
 	CC_SYNTHESIZE(int, _countY, CountY);
 
+	CC_SYNTHESIZE(bool, _eraseX, EraseX);
+
+	CC_SYNTHESIZE(bool, _eraseY, EraseY);
+
 	CC_SYNTHESIZE(int, _x, X);
 
 	CC_SYNTHESIZE(int, _y, Y);
