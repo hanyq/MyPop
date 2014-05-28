@@ -5,6 +5,6 @@
 
 #define CELL_SIZE 64
 
-#define TIME_PER_CELL 0.1
+#define TIME_PER_CELL 0.3
 
 #endif

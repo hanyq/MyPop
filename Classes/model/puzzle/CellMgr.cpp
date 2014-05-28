@@ -237,7 +237,7 @@ void CellMgr::drop()
 				}
 				for(; upY < _sizeY; upY++)
 				{
-					upElement = getElement(x, y);
+					upElement = getElement(x, upY);
 					if(upElement)
 					{
 						break;
@@ -245,15 +245,15 @@ void CellMgr::drop()
 				}
 				if(upElement){
 					//ÍùÏÂÒÆ¶¯ÔªËØ
-					int upX = upElement->getX();
-					int upY = upElement->getY();
+					int fromX = upElement->getX();
+					int fromY = upElement->getY();
 					upElement->setX(x);
 					upElement->setY(y);
 
 					setElement(x, y, upElement);
-					setElement(upX, upY, nullptr);
+					setElement(fromX, fromY, nullptr);
 
-					Controllers::getGameController()->drop(upX, upY, x, y);
+					Controllers::getGameController()->drop(fromX, fromY, x, y);
 				}
 				else
 				{
@@ -266,8 +266,10 @@ void CellMgr::drop()
 
 					setElement(x, y, newElement);
 
-					Controllers::getGameController()->drop(x, _sizeY, x, y);
+					Controllers::getGameController()->drop(x, upY, x, y);
 				}
+
+				upY++;
 			}
 		}
 	}

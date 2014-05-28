@@ -108,7 +108,7 @@ void GameLayer::onStart()
 				elementSprite->setPosition(Point(initX, initY));
 
 				int elementSpriteTag = getElementSpriteTag(x, y);
-				removeChildByTag(elementSpriteTag);
+				//removeChildByTag(elementSpriteTag);
 
 				addChild(elementSprite, 30, elementSpriteTag);
 
@@ -163,7 +163,7 @@ void GameLayer::onAfterErase()
 	CC_SAFE_RELEASE_NULL(_eraseCountDown);
 
 	//ÏÂÂäÔªËØ
-
+	Player::getCellMgr()->drop();
 }
 
 void GameLayer::onBeginDrop()
@@ -191,11 +191,11 @@ void GameLayer::onDrop(int fromX, int fromY, int toX, int toY)
 		char spriteName[15];
 		sprintf(spriteName, "Planet-%d.png", element->getTag());
 				
-		Sprite *elementSprite = Sprite::create(spriteName);
+		elementSprite = Sprite::create(spriteName);
 		elementSprite->setPosition(Point(initX, initY));
 
 		int elementSpriteTag = getElementSpriteTag(toX, toY);
-		removeChildByTag(elementSpriteTag);
+		//removeChildByTag(elementSpriteTag);
 
 		addChild(elementSprite, 30, elementSpriteTag);
 	}
@@ -209,4 +209,9 @@ void GameLayer::onDrop(int fromX, int fromY, int toX, int toY)
 void GameLayer::onAfterDrop()
 {
 	CC_SAFE_RELEASE_NULL(_dropCountDown);
+
+	if(Player::getCellMgr()->mark())
+	{
+		Player::getCellMgr()->erase();
+	}
 }
