@@ -11,6 +11,8 @@ USING_NS_CC;
 GameLayer::GameLayer()
 	:_eraseCountDown(nullptr)
 	,_dropCountDown(nullptr)
+	,_touchEnabled(false)
+	,_dragSprite(nullptr)
 {
 
 }
@@ -37,6 +39,82 @@ bool GameLayer::init()
 	bgSprite->setScaleY(winSize.height / bgSprite->getContentSize().height);
 
 	addChild(bgSprite, 0);
+
+	
+	EventListenerTouchOneByOne *listener = EventListenerTouchOneByOne::create();
+	listener->onTouchBegan = [=](Touch *touch, Event *event)
+	{
+		if(!getTouchEnabled())
+		{
+			return false;
+		}
+		Point p = touch->getLocation();
+		
+		int cellX = p.x / CELL_SIZE;
+		int cellY = p.y / CELL_SIZE;
+
+		Sprite *elementSprite = (Sprite *)getChildByTag(getElementSpriteTag(cellX, cellY));
+		if(!elementSprite)
+		{
+			return false;
+		}
+		_dragSprite = elementSprite;
+		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() + 1);
+
+		return true;
+	};
+
+	listener->onTouchMoved = [=](Touch *touch, Event *event)
+	{
+		Point p = touch->getLocation();
+		if(_dragSprite){
+			if(p.x < CELL_SIZE / 2)
+			{
+				p.x = CELL_SIZE / 2;
+			}
+			if(p.y < CELL_SIZE / 2)
+			{
+				p.y = CELL_SIZE / 2;
+			}
+			if(p.x > Player::getCellMgr()->getSizeX() * CELL_SIZE - CELL_SIZE / 2){
+				p.x = Player::getCellMgr()->getSizeX() * CELL_SIZE - CELL_SIZE/ 2;
+			}
+			if(p.y > Player::getCellMgr()->getSizeY() * CELL_SIZE - CELL_SIZE / 2){
+				p.y = Player::getCellMgr()->getSizeY() * CELL_SIZE - CELL_SIZE / 2;
+			}
+
+			_dragSprite->setPosition(p);
+		}
+	};
+
+	listener->onTouchEnded = [=](Touch *touch, Event *event)
+	{
+		Point p = touch->getLocation();
+		
+		int toCellX = p.x / CELL_SIZE;
+		int toCellY = p.y / CELL_SIZE;
+		
+		
+		int tag = _dragSprite->getTag();
+		int cellX = tag % Player::getCellMgr()->getSizeX();
+		int cellY = tag / Player::getCellMgr()->getSizeX();
+
+		if(Player::getCellMgr()->testSwap(cellX, cellY, toCellX, toCellY))
+		{
+			Player::getCellMgr()->swap(cellX, cellY, toCellX, toCellY);
+		}
+		else
+		{
+			int x = cellX * CELL_SIZE + CELL_SIZE / 2;
+			int y = cellY * CELL_SIZE + CELL_SIZE / 2;
+
+			_dragSprite->setPosition(x, y);
+		}
+
+		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() - 1);
+	};
+
+	getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 
 	return true;
 }
@@ -76,63 +154,6 @@ void GameLayer::onExit()
 	Controllers::getGameController()->beginDrop.disconnect(this);
 	Controllers::getGameController()->drop.disconnect(this);
 	Controllers::getGameController()->swap.disconnect(this);
-}
-
-void GameLayer::cancelTouch()
-{
-	
-	//ÉèÖÃ¿É·ñ´¥Ãþ
-
-	EventListenerTouchOneByOne *listener = EventListenerTouchOneByOne::create();
-	listener->onTouchBegan = [=](Touch *touch, Event *event)
-	{
-		Point p = touch->getLocation();
-		
-		int cellX = p.x / CELL_SIZE;
-		int cellY = p.y / CELL_SIZE;
-
-		_dragSprite = (Sprite *)getChildByTag(getElementSpriteTag(cellX, cellY));
-		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() + 1);
-
-		return true;
-	};
-
-	listener->onTouchMoved = [=](Touch *touch, Event *event)
-	{
-		Point p = touch->getLocation();
-		if(_dragSprite){
-			_dragSprite->setPosition(p);
-		}
-	};
-
-	listener->onTouchEnded = [=](Touch *touch, Event *event)
-	{
-		Point p = touch->getLocation();
-		
-		int toCellX = p.x / CELL_SIZE;
-		int toCellY = p.y / CELL_SIZE;
-		
-		
-		int tag = _dragSprite->getTag();
-		int cellX = tag % Player::getCellMgr()->getSizeX();
-		int cellY = tag / Player::getCellMgr()->getSizeX();
-
-		if(Player::getCellMgr()->testSwap(cellX, cellY, toCellX, toCellY))
-		{
-			Player::getCellMgr()->swap(cellX, cellY, toCellX, toCellY);
-		}
-		else
-		{
-			int x = cellX * CELL_SIZE + CELL_SIZE / 2;
-			int y = cellY * CELL_SIZE + CELL_SIZE / 2;
-
-			_dragSprite->setPosition(x, y);
-		}
-
-		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() - 1);
-	};
-
-	getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 }
 
 void GameLayer::onStart()
@@ -216,6 +237,7 @@ void GameLayer::onAfterErase()
 
 void GameLayer::onBeginDrop()
 {
+	setTouchEnabled(false);
 	CC_SAFE_RELEASE_NULL(_dropCountDown);
 	_dropCountDown = CountDown::create(CC_CALLBACK_0(GameLayer::onAfterDrop, this));
 	_dropCountDown->retain();
@@ -224,34 +246,44 @@ void GameLayer::onBeginDrop()
 void GameLayer::onDrop(int fromX, int fromY, int toX, int toY)
 {
 	Sprite *elementSprite = (Sprite *)getChildByTag(getElementSpriteTag(fromX, fromY));
-	int initX = fromX * CELL_SIZE + CELL_SIZE / 2;
-	int initY = fromY * CELL_SIZE + CELL_SIZE / 2;
+	
 
-	int toPointX = toX * CELL_SIZE + CELL_SIZE / 2;
-	int toPointY = toY * CELL_SIZE + CELL_SIZE / 2;
-	if(elementSprite){
-		int pointY = toY * CELL_SIZE + CELL_SIZE / 2;
-		elementSprite->setTag(getElementSpriteTag(toX, toY));
-	}
-	else
+	if(!elementSprite)
 	{
 		Element *element = Player::getCellMgr()->getElement(toX, toY);
 		char spriteName[15];
 		sprintf(spriteName, "Planet-%d.png", element->getTag());
 				
 		elementSprite = Sprite::create(spriteName);
+		int initX = fromX * CELL_SIZE + CELL_SIZE / 2;
+		int initY = fromY * CELL_SIZE + CELL_SIZE / 2;
 		elementSprite->setPosition(Point(initX, initY));
 
-		int elementSpriteTag = getElementSpriteTag(toX, toY);
-		//removeChildByTag(elementSpriteTag);
-
-		addChild(elementSprite, 30, elementSpriteTag);
+		addChild(elementSprite, 30);
 	}
 
-	int time = (fromY - toY) * TIME_PER_CELL;
+	_moveTo(elementSprite, toX, toY);
+}
+
+void GameLayer::_moveTo(Sprite *elementSprite, int toX, int toY)
+{
+	int toPointX = toX * CELL_SIZE + CELL_SIZE / 2;
+	int toPointY = toY * CELL_SIZE + CELL_SIZE / 2;
+
+	int fromPointX = elementSprite->getPositionX();
+	int fromPointY = elementSprite->getPositionY();
+
+	float x_len = toPointX - fromPointX;
+	float y_len = toPointY - fromPointY;
+
+	float len = std::sqrt(x_len * x_len + y_len * y_len);
+
+	float time = len / CELL_SIZE * TIME_PER_CELL;
+
 	ActionInterval *move = MoveTo::create(time, Point(toPointX, toPointY));
 
 	elementSprite->runAction(Sequence::create(move, _dropCountDown->action(), NULL));
+	elementSprite->setTag(getElementSpriteTag(toX, toY));
 }
 
 void GameLayer::onAfterDrop()
@@ -264,7 +296,7 @@ void GameLayer::onAfterDrop()
 	}
 	else
 	{
-		cancelTouch();
+		setTouchEnabled(true);
 	}
 }
 
@@ -272,7 +304,9 @@ void GameLayer::onSwap(int x1, int y1, int x2, int y2)
 {
 	onBeginDrop();
 
-	onDrop(x1, y1, x2, y2);
+	Sprite *elementSprite1 = (Sprite *)getChildByTag(getElementSpriteTag(x1, y1));
+	Sprite *elementSprite2 = (Sprite *)getChildByTag(getElementSpriteTag(x2, y2));
 
-	onDrop(x2, y2, x1, y1);
+	_moveTo(elementSprite1, x2, y2);
+	_moveTo(elementSprite2, x1, y1);
 }
