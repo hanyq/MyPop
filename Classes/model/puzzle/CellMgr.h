@@ -44,10 +44,18 @@ public:
 	//下落元素，填补空缺
 	void drop();
 
+	//检查位置（x1, y1）和（x2, y2）能否交换元素
+	bool testSwap(int x1, int y1, int x2, int y2);
+
+	//交换（x1, y1）和（x2, y2）位置
+	void swap(int x1, int y1, int x2, int y2);
+
 private:
 	int randTag();
 
 	void set(int x, int y, Cell* cell);
+
+	void _swap(int x1, int y1, int x2, int y2);
 
 	//标记X轴方向上可消除的元素
 	void markEraseX(int x, int y, int countX);

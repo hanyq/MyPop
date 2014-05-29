@@ -26,6 +26,9 @@ public:
 
 	//下落元素
 	signal4<int, int, int, int> drop;
+
+	//交换元素
+	signal4<int, int, int, int> swap;
 };
 
 #endif

@@ -61,6 +61,7 @@ void GameLayer::onEnter()
 	Controllers::getGameController()->erase.connect(this, &GameLayer::onErase);
 	Controllers::getGameController()->beginDrop.connect(this, &GameLayer::onBeginDrop);
 	Controllers::getGameController()->drop.connect(this, &GameLayer::onDrop);
+	Controllers::getGameController()->swap.connect(this, &GameLayer::onSwap);
 	Layer::onEnter();
 }
 
@@ -74,22 +75,69 @@ void GameLayer::onExit()
 	Controllers::getGameController()->erase.disconnect(this);
 	Controllers::getGameController()->beginDrop.disconnect(this);
 	Controllers::getGameController()->drop.disconnect(this);
+	Controllers::getGameController()->swap.disconnect(this);
 }
 
 void GameLayer::cancelTouch()
 {
-	bool canErase = Player::getCellMgr()->mark();
-
-	if(canErase)
-	{
-		Player::getCellMgr()->erase();
-	}
+	
 	//ÉèÖÃ¿É·ñ´¥Ãþ
+
+	EventListenerTouchOneByOne *listener = EventListenerTouchOneByOne::create();
+	listener->onTouchBegan = [=](Touch *touch, Event *event)
+	{
+		Point p = touch->getLocation();
+		
+		int cellX = p.x / CELL_SIZE;
+		int cellY = p.y / CELL_SIZE;
+
+		_dragSprite = (Sprite *)getChildByTag(getElementSpriteTag(cellX, cellY));
+		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() + 1);
+
+		return true;
+	};
+
+	listener->onTouchMoved = [=](Touch *touch, Event *event)
+	{
+		Point p = touch->getLocation();
+		if(_dragSprite){
+			_dragSprite->setPosition(p);
+		}
+	};
+
+	listener->onTouchEnded = [=](Touch *touch, Event *event)
+	{
+		Point p = touch->getLocation();
+		
+		int toCellX = p.x / CELL_SIZE;
+		int toCellY = p.y / CELL_SIZE;
+		
+		
+		int tag = _dragSprite->getTag();
+		int cellX = tag % Player::getCellMgr()->getSizeX();
+		int cellY = tag / Player::getCellMgr()->getSizeX();
+
+		if(Player::getCellMgr()->testSwap(cellX, cellY, toCellX, toCellY))
+		{
+			Player::getCellMgr()->swap(cellX, cellY, toCellX, toCellY);
+		}
+		else
+		{
+			int x = cellX * CELL_SIZE + CELL_SIZE / 2;
+			int y = cellY * CELL_SIZE + CELL_SIZE / 2;
+
+			_dragSprite->setPosition(x, y);
+		}
+
+		_dragSprite->setLocalZOrder(_dragSprite->getLocalZOrder() - 1);
+	};
+
+	getEventDispatcher()->addEventListenerWithSceneGraphPriority(listener, this);
 }
 
 void GameLayer::onStart()
 {
-	CountDown *countDown = CountDown::create(CC_CALLBACK_0(GameLayer::cancelTouch, this));
+	onBeginDrop();
 
 	for (int x = 0; x < Player::getCellMgr()->getSizeX(); x++)
 	{
@@ -117,7 +165,7 @@ void GameLayer::onStart()
 				int time = Player::getCellMgr()->getSizeY() * TIME_PER_CELL;
 				ActionInterval *move = MoveTo::create(time, Point(initX, pointY));
 
-				elementSprite->runAction(Sequence::create(move, countDown->action(), NULL));
+				elementSprite->runAction(Sequence::create(move, _dropCountDown->action(), NULL));
 			}
 		}
 	}
@@ -214,4 +262,17 @@ void GameLayer::onAfterDrop()
 	{
 		Player::getCellMgr()->erase();
 	}
+	else
+	{
+		cancelTouch();
+	}
+}
+
+void GameLayer::onSwap(int x1, int y1, int x2, int y2)
+{
+	onBeginDrop();
+
+	onDrop(x1, y1, x2, y2);
+
+	onDrop(x2, y2, x1, y1);
 }

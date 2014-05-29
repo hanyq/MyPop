@@ -85,7 +85,10 @@ void CellMgr::setElement(int x, int y, Element *element)
 
 	CC_SAFE_RETAIN(element);
 	CC_SAFE_RELEASE(_elements[x + y * _sizeX]);
-
+	if(element){
+		element->setX(x);
+		element->setY(y);
+	}
 	_elements[x + y * _sizeX] = element;
 }
 
@@ -273,4 +276,61 @@ void CellMgr::drop()
 			}
 		}
 	}
+}
+
+bool CellMgr::testSwap(int x1, int y1, int x2, int y2)
+{
+	if(x1 == x2 && y1 == y2)
+	{
+		return false;
+	}
+	//相邻的格子中的元素才能互换位置
+	if(std::abs(x1 - x2) > 1 || std::abs(y1 - y2) > 1)
+	{
+		return false;
+	}
+
+	Element *element1 = getElement(x1, y1);
+	Element *element2 = getElement(x2, y2);
+	if(!element1 || !element2){
+		return false;
+	}
+	if(element1->getTag() == element2->getTag())
+	{
+		return false;
+	}
+	element1->retain();
+	element2->retain();
+	setElement(x1, y1, element2);
+	setElement(x2, y2, element1);
+
+	bool canSwap = mark();
+
+	setElement(x1, y1, element1);
+	setElement(x2, y2, element2);
+	element1->release();
+	element2->release();
+
+	return canSwap;
+}
+
+void CellMgr::_swap(int x1, int y1, int x2, int y2)
+{
+	Element *element1 = getElement(x1, y1);
+	Element *element2 = getElement(x2, y2);
+	element1->retain();
+	element2->retain();
+
+	setElement(x1, y1, element2);
+	setElement(x2, y2, element1);
+
+	element1->release();
+	element2->release();
+}
+
+void CellMgr::swap(int x1, int y1, int x2, int y2)
+{
+	_swap(x1, y1, x2, y2);
+
+	Controllers::getGameController()->swap(x1, y1, x2, y2);
 }

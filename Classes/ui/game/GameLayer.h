@@ -50,9 +50,13 @@ public:
 	//下落结束
 	void onAfterDrop();
 
+	//交换位置
+	void onSwap(int x1, int y1, int x2, int y2);
+
 private:
 	CountDown *_eraseCountDown;//消除
 	CountDown *_dropCountDown;//下落
+	Sprite *_dragSprite;
 };
 
 #endif
