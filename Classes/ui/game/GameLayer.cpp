@@ -40,7 +40,12 @@ bool GameLayer::init()
 
 	addChild(bgSprite, 0);
 
-	
+	char ch[50];
+	sprintf(ch, "Score : %d", 0);
+	auto scoreLabel = LabelTTF::create(ch, "Arial", 24);
+	scoreLabel->setPosition(winSize.width / 2, winSize.height - 40);
+	addChild(scoreLabel, 0);
+
 	EventListenerTouchOneByOne *listener = EventListenerTouchOneByOne::create();
 	listener->onTouchBegan = [=](Touch *touch, Event *event)
 	{
@@ -140,6 +145,7 @@ void GameLayer::onEnter()
 	Controllers::getGameController()->beginDrop.connect(this, &GameLayer::onBeginDrop);
 	Controllers::getGameController()->drop.connect(this, &GameLayer::onDrop);
 	Controllers::getGameController()->swap.connect(this, &GameLayer::onSwap);
+	Controllers::getGameController()->addScore.connect(this, &GameLayer::onAddScore);
 	Layer::onEnter();
 }
 
@@ -154,6 +160,7 @@ void GameLayer::onExit()
 	Controllers::getGameController()->beginDrop.disconnect(this);
 	Controllers::getGameController()->drop.disconnect(this);
 	Controllers::getGameController()->swap.disconnect(this);
+	Controllers::getGameController()->addScore.disconnect(this);
 }
 
 void GameLayer::onStart()
@@ -281,8 +288,9 @@ void GameLayer::_moveTo(Sprite *elementSprite, int toX, int toY)
 	float time = len / CELL_SIZE * TIME_PER_CELL;
 
 	ActionInterval *move = MoveTo::create(time, Point(toPointX, toPointY));
+	EaseSineIn *easeIn = EaseSineIn::create(move);
 
-	elementSprite->runAction(Sequence::create(move, _dropCountDown->action(), NULL));
+	elementSprite->runAction(Sequence::create(easeIn, _dropCountDown->action(), NULL));
 	elementSprite->setTag(getElementSpriteTag(toX, toY));
 }
 
@@ -309,4 +317,9 @@ void GameLayer::onSwap(int x1, int y1, int x2, int y2)
 
 	_moveTo(elementSprite1, x2, y2);
 	_moveTo(elementSprite2, x1, y1);
+}
+
+void GameLayer::onAddScore(int addScore, int score)
+{
+	
 }

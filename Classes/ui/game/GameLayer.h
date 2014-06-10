@@ -53,6 +53,9 @@ public:
 	//交换位置
 	void onSwap(int x1, int y1, int x2, int y2);
 
+	//分数增加
+	void onAddScore(int addScore, int score);
+
 private:
 
 	void _moveTo(Sprite *elementSprite, int toX, int toY);

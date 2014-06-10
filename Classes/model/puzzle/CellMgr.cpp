@@ -214,6 +214,13 @@ void CellMgr::erase()
 				if(element->getEraseX() || element->getEraseY()){
 					//消除当前位置的元素
 					Controllers::getGameController()->erase(x, y, element->getEraseX(), element->getEraseY());
+					
+					if(element->getCountX() >= 3){
+						Player::getUserMgr()->addScore(10);
+					}
+					if(element->getCountY() >= 3){
+						Player::getUserMgr()->addScore(10);
+					}
 
 					setElement(x, y, nullptr);
 				}

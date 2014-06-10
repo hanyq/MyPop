@@ -29,6 +29,9 @@ public:
 
 	//交换元素
 	signal4<int, int, int, int> swap;
+
+	//分数增加
+	signal2<int, int>addScore;
 };
 
 #endif

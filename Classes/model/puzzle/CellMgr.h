@@ -5,7 +5,7 @@
 #include "../Mgr.h"
 #include "Cell.h"
 #include "Element.h"
-
+#include "../Player.h"
 
 USING_NS_CC;
 
